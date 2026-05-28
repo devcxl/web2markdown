@@ -1,0 +1,145 @@
+import { describe, expect, it } from 'vitest';
+import { JSDOM } from 'jsdom';
+import { convertPageToMarkdown } from '../src/markdown/convertPageToMarkdown';
+
+function createDocument(html: string, url = 'https://example.com/transformers'): Document {
+  return new JSDOM(html, { url }).window.document;
+}
+
+describe('convertPageToMarkdown', () => {
+  it('exports article markdown with frontmatter', () => {
+    const document = createDocument(`
+      <!doctype html>
+      <html>
+        <head><title>How Transformers Work</title></head>
+        <body>
+          <article>
+            <h1>How Transformers Work</h1>
+            <p>Transformers use <a href="/attention">attention</a>.</p>
+            <img src="/images/diagram.png" alt="diagram" />
+          </article>
+        </body>
+      </html>
+    `);
+
+    const result = convertPageToMarkdown(document, new Date('2026-04-09T12:00:00Z'));
+
+    expect(result.markdown).toContain('title: "How Transformers Work"');
+    expect(result.markdown).toContain('url: "https://example.com/transformers"');
+    expect(result.markdown).toContain('clipped: "2026-04-09"');
+    expect(result.markdown).toContain('tags: ["web_clip"]');
+    expect(result.markdown).toContain('source_type: web_clip');
+    expect(result.markdown).toContain('images: 1');
+    expect(result.markdown).toContain('# How Transformers Work');
+    expect(result.markdown).toContain('[attention](https://example.com/attention)');
+    expect(result.markdown).toContain('![diagram](https://example.com/images/diagram.png)');
+  });
+
+  it('throws when Readability cannot extract content', () => {
+    const document = createDocument('<!doctype html><html><body><button>Only UI</button></body></html>');
+
+    expect(() => convertPageToMarkdown(document)).toThrow('无法提取正文');
+  });
+
+  it('escapes frontmatter and markdown title line breaks', () => {
+    const document = createDocument(`
+      <!doctype html>
+      <html>
+        <head><title>Safe &quot;title&quot;
+malicious: true</title></head>
+        <body>
+          <article>
+            <h1>Safe &quot;title&quot;
+malicious: true</h1>
+            <p>Hello.</p>
+          </article>
+        </body>
+      </html>
+    `);
+
+    const result = convertPageToMarkdown(document, new Date('2026-04-09T12:00:00Z'));
+
+    expect(result.markdown).toContain('title: "Safe \\"title\\" malicious: true"');
+    expect(result.markdown).toContain('# Safe "title" malicious: true');
+    expect(result.markdown).not.toContain('title: "Safe "title"\nmalicious: true"');
+  });
+
+  it('removes unsafe link and image protocols', () => {
+    const document = createDocument(`
+      <!doctype html>
+      <html>
+        <head><title>Unsafe URLs</title></head>
+        <body>
+          <article>
+            <h1>Unsafe URLs</h1>
+            <p><a href="javascript:alert(1)">bad link</a></p>
+            <img src="data:image/svg+xml,<svg></svg>" alt="bad image" />
+            <img src="https://example.com/safe.png" alt="safe image" />
+          </article>
+        </body>
+      </html>
+    `);
+
+    const result = convertPageToMarkdown(document, new Date('2026-04-09T12:00:00Z'));
+
+    expect(result.imageCount).toBe(1);
+    expect(result.markdown).toContain('bad link');
+    expect(result.markdown).not.toContain('javascript:alert');
+    expect(result.markdown).not.toContain('data:image');
+    expect(result.markdown).toContain('![safe image](https://example.com/safe.png)');
+    expect(result.markdown).toContain('images: 1');
+  });
+
+  it('demotes article headings and removes bold markers from heading text', () => {
+    const document = createDocument(`
+      <!doctype html>
+      <html>
+        <head><title>Heading Rules</title></head>
+        <body>
+          <article>
+            <h1><strong>Main Section</strong></h1>
+            <h2><strong>Nested Section</strong></h2>
+            <p>Body.</p>
+          </article>
+        </body>
+      </html>
+    `);
+
+    const result = convertPageToMarkdown(document, new Date('2026-04-09T12:00:00Z'));
+
+    expect(result.markdown).toContain('\n## Main Section\n');
+    expect(result.markdown).toContain('\n### Nested Section\n');
+    expect(result.markdown).not.toContain('## **');
+    expect(result.markdown).not.toContain('### **');
+  });
+
+  it('converts article tables to markdown tables', () => {
+    const document = createDocument(`
+      <!doctype html>
+      <html>
+        <head><title>Table Article</title></head>
+        <body>
+          <article>
+            <h1>Table Article</h1>
+            <table>
+              <thead>
+                <tr><th>Name</th><th>Score</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Alice</td><td>95</td></tr>
+                <tr><td>Bob</td><td>88</td></tr>
+              </tbody>
+            </table>
+          </article>
+        </body>
+      </html>
+    `);
+
+    const result = convertPageToMarkdown(document, new Date('2026-04-09T12:00:00Z'));
+
+    expect(result.markdown).toContain('| Name | Score |');
+    expect(result.markdown).toContain('| --- | --- |');
+    expect(result.markdown).toContain('| Alice | 95 |');
+    expect(result.markdown).toContain('| Bob | 88 |');
+  });
+});
