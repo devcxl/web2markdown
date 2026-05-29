@@ -1,12 +1,12 @@
 import TurndownService from 'turndown';
-import { tables } from 'turndown-plugin-gfm';
+import { strikethrough, tables } from 'turndown-plugin-gfm';
 
 const turndown = new TurndownService({
   codeBlockStyle: 'fenced',
   headingStyle: 'atx',
 });
 
-turndown.use(tables);
+turndown.use([tables, strikethrough]);
 
 turndown.addRule('articleHeadings', {
   filter: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
@@ -24,6 +24,25 @@ turndown.addRule('articleHeadings', {
   },
 });
 
+turndown.addRule('preCodeBlock', {
+  filter(node) {
+    const firstChild = node.firstChild as HTMLElement | null;
+    return (
+      node.nodeName === 'PRE' &&
+      firstChild?.nodeName === 'CODE' &&
+      !firstChild.className &&
+      !!(node as HTMLElement).className
+    );
+  },
+  replacement(_content, node) {
+    const pre = node as HTMLElement;
+    const language = (pre.className.match(/language-(\S+)/) || [])[1] || '';
+    const code = pre.textContent || '';
+    return `\n\n\`\`\`${language}\n${code}\n\`\`\`\n\n`;
+  },
+});
+
 export function htmlToMarkdown(html: string): string {
-  return turndown.turndown(html).trim();
+  const markdown = turndown.turndown(html).trim();
+  return markdown.replace(/\n{3,}/g, '\n\n');
 }

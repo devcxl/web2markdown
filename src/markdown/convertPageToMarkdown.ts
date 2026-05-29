@@ -14,6 +14,7 @@ export function convertPageToMarkdown(document: Document, clippedAt = new Date()
 
   normalizeResourceUrls(articleDocument, document.location.href);
   normalizeTables(articleDocument);
+  restoreCodeLanguages(articleDocument);
 
   const bodyMarkdown = htmlToMarkdown(articleDocument.body.innerHTML);
   const imageCount = articleDocument.querySelectorAll('img[src]').length;
@@ -88,6 +89,17 @@ function normalizeTables(document: Document) {
     table.insertBefore(thead, table.firstChild);
   });
 }
+
+function restoreCodeLanguages(document: Document) {
+  document.querySelectorAll<HTMLElement>('[data-web2markdown-code-lang]').forEach((el) => {
+    const lang = el.dataset.web2markdownCodeLang;
+    if (lang) {
+      el.className = `language-${lang}`;
+    }
+    delete el.dataset.web2markdownCodeLang;
+  });
+}
+
 
 function toSafeAbsoluteUrl(value: string | null, baseUrl: string, allowedProtocols: Set<string>): string {
   if (!value) {

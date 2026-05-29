@@ -170,4 +170,69 @@ malicious: true</h1>
     expect(result.markdown).not.toContain('<table>');
     expect(result.markdown).not.toContain('<td>');
   });
+
+  it('converts strikethrough text', () => {
+    const document = createDocument(`
+      <!doctype html>
+      <html>
+        <head><title>Strikethrough</title></head>
+        <body>
+          <article>
+            <h1>Strikethrough</h1>
+            <p>This is <del>deleted</del> and <s>struck</s> text.</p>
+          </article>
+        </body>
+      </html>
+    `);
+
+    const result = convertPageToMarkdown(document, new Date('2026-04-09T12:00:00Z'));
+
+    expect(result.markdown).toContain('~deleted~');
+    expect(result.markdown).toContain('~struck~');
+  });
+
+  it('preserves code block language from pre class attribute', () => {
+    const document = createDocument(`
+      <!doctype html>
+      <html>
+        <head><title>Code</title></head>
+        <body>
+          <article>
+            <h1>Code</h1>
+            <pre class="language-python"><code>def hello():
+    print("world")</code></pre>
+            <pre><code class="language-javascript">const x = 1;</code></pre>
+          </article>
+        </body>
+      </html>
+    `);
+
+    const result = convertPageToMarkdown(document, new Date('2026-04-09T12:00:00Z'));
+
+    expect(result.markdown).toContain('\`\`\`python');
+    expect(result.markdown).toContain('\`\`\`javascript');
+  });
+
+  it('compresses excessive blank lines', () => {
+    const document = createDocument(`
+      <!doctype html>
+      <html>
+        <head><title>Spacing</title></head>
+        <body>
+          <article>
+            <h1>Spacing</h1>
+            <p>First paragraph.</p>
+            <p></p>
+            <p></p>
+            <p></p>
+            <p>Last paragraph.</p>
+          </article>
+        </body>
+      </html>
+    `);
+
+    const result = convertPageToMarkdown(document, new Date('2026-04-09T12:00:00Z'));
+
+    expect(result.markdown).not.toMatch(/\n{4,}/);
+  });
 });
