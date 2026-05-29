@@ -9,6 +9,7 @@ export default defineConfig({
       ? {
           browser_specific_settings: {
             gecko: {
+              id: 'web2markdown@devcxl',
               data_collection_permissions: {
                 required: ['none'],
               },
