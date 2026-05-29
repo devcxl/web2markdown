@@ -13,6 +13,7 @@ export function convertPageToMarkdown(document: Document, clippedAt = new Date()
   articleDocument.body.innerHTML = article.content;
 
   normalizeResourceUrls(articleDocument, document.location.href);
+  normalizeTables(articleDocument);
 
   const bodyMarkdown = htmlToMarkdown(articleDocument.body.innerHTML);
   const imageCount = articleDocument.querySelectorAll('img[src]').length;
@@ -51,6 +52,40 @@ function normalizeResourceUrls(document: Document, baseUrl: string) {
     } else {
       image.remove();
     }
+  });
+}
+
+function normalizeTables(document: Document) {
+  document.querySelectorAll('table').forEach((table) => {
+    if (table.querySelector('thead')) {
+      return;
+    }
+
+    const firstRow = table.querySelector('tr');
+    if (!firstRow) {
+      return;
+    }
+
+    const thead = document.createElement('thead');
+    const cells = firstRow.querySelectorAll('td, th');
+
+    if (cells.length === 0) {
+      return;
+    }
+
+    const headerRow = document.createElement('tr');
+    cells.forEach((cell) => {
+      const th = document.createElement('th');
+      th.innerHTML = cell.innerHTML;
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+
+    const parent = firstRow.parentElement;
+    if (parent) {
+      parent.removeChild(firstRow);
+    }
+    table.insertBefore(thead, table.firstChild);
   });
 }
 

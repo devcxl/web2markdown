@@ -142,4 +142,32 @@ malicious: true</h1>
     expect(result.markdown).toContain('| Alice | 95 |');
     expect(result.markdown).toContain('| Bob | 88 |');
   });
+
+  it('converts tables without thead to markdown tables', () => {
+    const document = createDocument(`
+      <!doctype html>
+      <html>
+        <head><title>No Thead Table</title></head>
+        <body>
+          <article>
+            <h1>No Thead Table</h1>
+            <table>
+              <tbody>
+                <tr><td>token</td><td>izer</td><td>:</td></tr>
+                <tr><td>hello</td><td>world</td><td>!</td></tr>
+              </tbody>
+            </table>
+          </article>
+        </body>
+      </html>
+    `);
+
+    const result = convertPageToMarkdown(document, new Date('2026-04-09T12:00:00Z'));
+
+    expect(result.markdown).toContain('| token | izer | : |');
+    expect(result.markdown).toContain('| --- | --- | --- |');
+    expect(result.markdown).toContain('| hello | world | ! |');
+    expect(result.markdown).not.toContain('<table>');
+    expect(result.markdown).not.toContain('<td>');
+  });
 });
