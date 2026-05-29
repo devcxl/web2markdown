@@ -235,4 +235,68 @@ malicious: true</h1>
 
     expect(result.markdown).not.toMatch(/\n{4,}/);
   });
+
+  it('converts figure with figcaption to italic caption', () => {
+    const document = createDocument(`
+      <!doctype html>
+      <html>
+        <head><title>Figure</title></head>
+        <body>
+          <article>
+            <h1>Figure</h1>
+            <figure>
+              <img src="/diagram.png" alt="Architecture diagram" />
+              <figcaption>The transformer architecture</figcaption>
+            </figure>
+            <p>More text.</p>
+          </article>
+        </body>
+      </html>
+    `);
+
+    const result = convertPageToMarkdown(document, new Date('2026-04-09T12:00:00Z'));
+
+    expect(result.markdown).toContain('![Architecture diagram](https://example.com/diagram.png)');
+    expect(result.markdown).toContain('*The transformer architecture*');
+  });
+
+  it('converts kbd elements to inline code', () => {
+    const document = createDocument(`
+      <!doctype html>
+      <html>
+        <head><title>Kbd</title></head>
+        <body>
+          <article>
+            <h1>Kbd</h1>
+            <p>Press <kbd>Ctrl</kbd> + <kbd>C</kbd> to copy.</p>
+          </article>
+        </body>
+      </html>
+    `);
+
+    const result = convertPageToMarkdown(document, new Date('2026-04-09T12:00:00Z'));
+
+    expect(result.markdown).toContain('`Ctrl`');
+    expect(result.markdown).toContain('`C`');
+  });
+
+  it('converts mark elements to highlighted text', () => {
+    const document = createDocument(`
+      <!doctype html>
+      <html>
+        <head><title>Mark</title></head>
+        <body>
+          <article>
+            <h1>Mark</h1>
+            <p>This is <mark>important</mark> and this is <mark>also important</mark>.</p>
+          </article>
+        </body>
+      </html>
+    `);
+
+    const result = convertPageToMarkdown(document, new Date('2026-04-09T12:00:00Z'));
+
+    expect(result.markdown).toContain('==important==');
+    expect(result.markdown).toContain('==also important==');
+  });
 });

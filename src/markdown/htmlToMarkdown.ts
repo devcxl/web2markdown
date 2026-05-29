@@ -42,6 +42,29 @@ turndown.addRule('preCodeBlock', {
   },
 });
 
+turndown.addRule('figcaption', {
+  filter: 'figcaption',
+  replacement(content) {
+    const text = content.trim();
+    return text ? `\n\n*${text}*\n\n` : '';
+  },
+});
+
+turndown.addRule('kbd', {
+  filter: 'kbd',
+  replacement(content) {
+    return `\`${content}\``;
+  },
+});
+
+turndown.addRule('mark', {
+  filter: 'mark',
+  replacement(content) {
+    const text = content.trim();
+    return text ? `==${text}==` : '';
+  },
+});
+
 export function htmlToMarkdown(html: string): string {
   const markdown = turndown.turndown(html).trim();
   return markdown.replace(/\n{3,}/g, '\n\n');
